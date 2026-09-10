@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 type WaveformProps = {
   peaks: number[];
   progress?: number;
@@ -10,6 +12,8 @@ type WaveformProps = {
 };
 
 export function Waveform({ peaks, progress = 0, label = "Forma de onda", interactive = false, onSeek, tone = "mint" }: WaveformProps) {
+  const pointerRef = useRef<number | null>(null);
+
   const seekFromPointer = (clientX: number, element: HTMLDivElement) => {
     if (!onSeek) return;
     const bounds = element.getBoundingClientRect();
@@ -25,7 +29,22 @@ export function Waveform({ peaks, progress = 0, label = "Forma de onda", interac
       aria-valuemin={interactive ? 0 : undefined}
       aria-valuemax={interactive ? 100 : undefined}
       aria-valuenow={interactive ? Math.round(progress * 100) : undefined}
-      onPointerDown={(event) => interactive && seekFromPointer(event.clientX, event.currentTarget)}
+      aria-valuetext={interactive ? `${Math.round(progress * 100)}%` : undefined}
+      onPointerDown={(event) => {
+        if (!interactive || !onSeek) return;
+        pointerRef.current = event.pointerId;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        seekFromPointer(event.clientX, event.currentTarget);
+      }}
+      onPointerMove={(event) => {
+        if (interactive && pointerRef.current === event.pointerId) seekFromPointer(event.clientX, event.currentTarget);
+      }}
+      onPointerUp={(event) => {
+        if (pointerRef.current !== event.pointerId) return;
+        pointerRef.current = null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      }}
+      onPointerCancel={() => { pointerRef.current = null; }}
       onKeyDown={(event) => {
         if (!interactive || !onSeek) return;
         if (event.key === "ArrowRight") onSeek(Math.min(1, progress + 0.04));

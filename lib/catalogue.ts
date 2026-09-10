@@ -21,7 +21,9 @@ export type WaveformData = { duration: number; peaks: number[] };
 export const categories = ["Todos", "Ambientes", "SFX", "Música audiovisual", "Música contemporánea"] as const;
 export const feelingTags = ["agua", "atmósfera", "campo", "oscuro", "ceremonial", "tensión", "criatura", "metal"];
 
-export const products: Product[] = [
+export const waveformByPath = waveformData as Record<string, WaveformData>;
+
+const curatedProducts: Product[] = [
   {
     id: "AMB-001",
     title: "Alcantarilla · Ambiente",
@@ -141,6 +143,75 @@ export const products: Product[] = [
   },
 ];
 
+const categoryByPrefix: Record<string, Category> = {
+  AMB: "Ambientes",
+  MAV: "Música audiovisual",
+  MUS: "Música contemporánea",
+  SFX: "SFX",
+};
+
+const categoryMeta: Record<Category, { accent: Product["accent"]; label: string; price: number; tag: string }> = {
+  Ambientes: { accent: "air", label: "Campo / textura", price: 6.9, tag: "ambiente" },
+  SFX: { accent: "metal", label: "SFX / textura", price: 2.9, tag: "efecto" },
+  "Música audiovisual": { accent: "cinema", label: "Música / imagen", price: 14.9, tag: "imagen" },
+  "Música contemporánea": { accent: "dark", label: "Música / pista", price: 19.9, tag: "música" },
+};
+
+const uppercaseTokens = new Set(["ak47", "eq", "fx", "ia", "ks", "mmix", "pn"]);
+
+function humanizeTitle(rawTitle: string) {
+  return rawTitle
+    .replace(/[_-]+/g, " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => uppercaseTokens.has(word) ? word.toUpperCase() : `${word[0].toUpperCase()}${word.slice(1)}`)
+    .join(" ");
+}
+
+function formatDuration(seconds: number) {
+  const totalSeconds = Math.max(0, Math.round(seconds));
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function generatedProduct(path: string, index: number): Product {
+  const fileName = path.split("/").pop() ?? path;
+  const baseName = fileName.replace(/\.[^.]+$/, "");
+  const separatorIndex = baseName.indexOf("__");
+  const id = separatorIndex >= 0 ? baseName.slice(0, separatorIndex) : baseName;
+  const rawTitle = separatorIndex >= 0 ? baseName.slice(separatorIndex + 2) : baseName;
+  const prefix = id.slice(0, 3);
+  const category = categoryByPrefix[prefix] ?? "SFX";
+  const meta = categoryMeta[category];
+  const waveform = waveformByPath[path];
+  const tags = Array.from(new Set([
+    meta.tag,
+    ...rawTitle.toLowerCase().split(/[_\s]+/).filter((token) => token.length > 2 && !/^\d+$/.test(token)),
+  ])).slice(0, 5);
+
+  return {
+    id,
+    title: humanizeTitle(rawTitle),
+    category,
+    label: meta.label,
+    description: `Pieza propia de ${meta.label.toLowerCase()} para escucha, montaje y diseño sonoro.`,
+    duration: formatDuration(waveform?.duration ?? 0),
+    price: meta.price,
+    preview: path,
+    tags,
+    axis: { x: 12 + ((index * 37) % 76), y: 18 + ((index * 53) % 70) },
+    accent: meta.accent,
+  };
+}
+
+const curatedById = new Map(curatedProducts.map((product) => [product.id, product]));
+
+export const products: Product[] = Object.keys(waveformByPath).map((path, index) => {
+  const fileName = path.split("/").pop() ?? path;
+  const id = fileName.split("__")[0];
+  return curatedById.get(id) ?? generatedProduct(path, index);
+});
+
 export const projects = [
   {
     number: "01",
@@ -165,8 +236,7 @@ export const projects = [
   },
 ];
 
-export const waveformByPath = waveformData as Record<string, WaveformData>;
-export const audioCount = Object.keys(waveformByPath).length;
+export const audioCount = products.length;
 
 export function waveformFor(path: string) {
   return waveformByPath[path] ?? { duration: 0, peaks: Array.from({ length: 72 }, (_, index) => 0.1 + ((index * 19) % 38) / 100) };

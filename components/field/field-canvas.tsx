@@ -8,11 +8,6 @@ type Particle = { x: number; y: number; size: number; speed: number; phase: numb
 export function FieldCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { metricsRef, isPlaying } = useAudio();
-  const playingRef = useRef(isPlaying);
-
-  useEffect(() => {
-    playingRef.current = isPlaying;
-  }, [isPlaying]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -44,9 +39,9 @@ export function FieldCanvas() {
 
     const draw = (time: number) => {
       const metrics = metricsRef.current;
-      const energy = playingRef.current ? metrics.amplitude : 0.04;
-      const bass = playingRef.current ? metrics.bass : 0.05;
-      const treble = playingRef.current ? metrics.treble : 0.04;
+      const energy = isPlaying ? metrics.amplitude : 0;
+      const bass = isPlaying ? metrics.bass : 0;
+      const treble = isPlaying ? metrics.treble : 0;
       context.clearRect(0, 0, width, height);
       context.globalCompositeOperation = "screen";
 
@@ -80,7 +75,7 @@ export function FieldCanvas() {
       }
 
       context.globalCompositeOperation = "source-over";
-      if (!reducedMotion.matches) frame = window.requestAnimationFrame(draw);
+      if (isPlaying && !reducedMotion.matches) frame = window.requestAnimationFrame(draw);
     };
 
     const observer = new ResizeObserver(resize);
@@ -99,7 +94,7 @@ export function FieldCanvas() {
       reducedMotion.removeEventListener("change", onMotionPreferenceChange);
       window.cancelAnimationFrame(frame);
     };
-  }, [metricsRef]);
+  }, [isPlaying, metricsRef]);
 
   return <canvas ref={canvasRef} className="field-canvas" aria-hidden="true" />;
 }

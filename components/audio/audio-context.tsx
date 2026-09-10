@@ -18,7 +18,7 @@ type AudioContextValue = {
   isSoundEnabled: boolean;
   loading: boolean;
   metricsRef: MutableRefObject<AudioMetrics>;
-  playTrack: (track: Product) => Promise<void>;
+  playTrack: (track: Product, startTime?: number) => Promise<void>;
   seek: (time: number) => void;
   setVolume: (value: number) => void;
   togglePlay: () => Promise<void>;
@@ -46,6 +46,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const frequencyDataRef = useRef<Uint8Array | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
   const metricsRef = useRef<AudioMetrics>({ amplitude: 0, bass: 0, mid: 0, treble: 0 });
   const [currentTrack, setCurrentTrack] = useState<Product | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -94,6 +95,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return () => window.cancelAnimationFrame(frame);
   }, [isPlaying]);
 
+  useEffect(() => {
+    const pauseForVideo = () => audioRef.current?.pause();
+    window.addEventListener("soundscape:video-play", pauseForVideo);
+    return () => window.removeEventListener("soundscape:video-play", pauseForVideo);
+  }, []);
+
   const ensureAudioGraph = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return null;
@@ -115,22 +122,33 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     return contextRef.current;
   }, []);
 
-  const playTrack = useCallback(async (track: Product) => {
+  const playTrack = useCallback(async (track: Product, startTime = 0) => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    const sameTrack = currentTrack?.id === track.id;
+    if (sameTrack && !audio.paused) {
+      audio.pause();
+      return;
+    }
+
     setLoading(true);
     const audioContext = ensureAudioGraph();
-    if (currentTrack?.id !== track.id) {
+    if (!sameTrack) {
+      pendingSeekRef.current = startTime;
       audio.src = track.preview;
       audio.load();
       setCurrentTrack(track);
       setCurrentTime(0);
       setDuration(0);
+    } else if (startTime > 0) {
+      audio.currentTime = startTime;
+      setCurrentTime(startTime);
     }
 
     try {
       if (audioContext?.state === "suspended") await audioContext.resume();
+      window.dispatchEvent(new CustomEvent("soundscape:audio-play"));
       await audio.play();
       setIsPlaying(true);
     } finally {
@@ -152,8 +170,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, [currentTrack, ensureAudioGraph]);
 
   const seek = (time: number) => {
-    if (audioRef.current) audioRef.current.currentTime = time;
-    setCurrentTime(time);
+    const audio = audioRef.current;
+    if (!audio) return;
+    const nextTime = Math.max(0, Math.min(time, Number.isFinite(audio.duration) ? audio.duration : time));
+    audio.currentTime = nextTime;
+    setCurrentTime(nextTime);
   };
 
   const setVolume = (value: number) => {
@@ -191,9 +212,21 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       <audio
         ref={audioRef}
         preload="none"
-        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+        onLoadedMetadata={(event) => {
+          const nextDuration = event.currentTarget.duration;
+          setDuration(nextDuration);
+          if (pendingSeekRef.current !== null) {
+            const nextTime = Math.max(0, Math.min(pendingSeekRef.current, nextDuration));
+            event.currentTarget.currentTime = nextTime;
+            setCurrentTime(nextTime);
+            pendingSeekRef.current = null;
+          }
+        }}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => {
+          window.dispatchEvent(new CustomEvent("soundscape:audio-play"));
+          setIsPlaying(true);
+        }}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
         aria-hidden="true"
