@@ -171,15 +171,32 @@ function SoundScapePage() {
     if (reducedMotion) return;
     const hero = heroRef.current;
     const header = headerRef.current;
+    const shell = rootRef.current;
     const archive = rootRef.current?.querySelector<HTMLElement>(".archive-section");
-    if (!hero || !header) return;
+    if (!hero || !header || !shell) return;
 
+    const heroImageDuration = 1.5;
+    const heroLiftDuration = 30.2;
+    const heroFadeDuration = 9;
+    const heroBackgroundTrackDuration = 1.4;
+    const heroLetterReferenceDuration = 15.65;
+    const heroScrollEnd = (duration: number, referenceDuration: number) => () => `+=${window.innerHeight * 1.75 * (duration / referenceDuration)}`;
     const heroTimeline = gsap.timeline({ scrollTrigger: { trigger: hero, start: "top top", end: "+=175%", scrub: true, pin: true, anticipatePin: 1 } });
-    heroTimeline.to(hero.querySelector(".hero-field-image"), { scale: 3.6, yPercent: -8, ease: "none" }, 0).to(hero.querySelector(".hero-field-content"), { yPercent: -34, opacity: 0, duration: 0.72, ease: "none" }, 0.11).to(hero.querySelector(".hero-footer"), { opacity: 0, yPercent: 30, ease: "none" }, 0.14).to(hero.querySelector(".hero-field-shade"), { opacity: 0.96, ease: "none" }, 0.42).fromTo(hero.querySelector(".hero-wave"), { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, ease: "none" }, 0.24).to(hero.querySelector(".hero-wave"), { opacity: 0, yPercent: -18, ease: "none" }, 0.7);
+    // Keep the background rhythm fixed while each hero control remains independently adjustable.
+    heroTimeline.to({}, { duration: heroBackgroundTrackDuration }, 0).to(hero.querySelector(".hero-footer"), { opacity: 0, yPercent: 46, duration: 0.30, ease: "none" }, 0.04).to(hero.querySelector(".hero-field-shade"), { opacity: 0.96, ease: "none" }, 0.42).fromTo(hero.querySelector(".hero-wave"), { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, ease: "none" }, 0.24).to(hero.querySelector(".hero-wave"), { opacity: 0, yPercent: -18, ease: "none" }, 0.7);
     if (archive) {
       const archiveOverlap = () => window.innerHeight * 1.65;
       heroTimeline.fromTo(archive, { y: 0, marginBottom: 0 }, { y: () => -archiveOverlap(), marginBottom: () => -archiveOverlap(), duration: 0.52, ease: "power2.out" }, 0);
     }
+
+    const heroImageTimeline = gsap.timeline({ scrollTrigger: { trigger: shell, start: "top top", end: heroScrollEnd(heroImageDuration, heroBackgroundTrackDuration), scrub: true } });
+    heroImageTimeline.to(hero.querySelector(".hero-field-image"), { scale: 3.6, yPercent: -8, duration: heroImageDuration, ease: "none" }, 0);
+
+    const heroLiftTimeline = gsap.timeline({ scrollTrigger: { trigger: shell, start: "top top", end: heroScrollEnd(heroLiftDuration + 0.15, heroLetterReferenceDuration), scrub: true } });
+    heroLiftTimeline.to({}, { duration: 0.15 }, 0).to(hero.querySelector(".hero-field-content"), { yPercent: -220, duration: heroLiftDuration, ease: "none" }, 0.15);
+
+    const heroFadeTimeline = gsap.timeline({ scrollTrigger: { trigger: shell, start: "top top", end: heroScrollEnd(heroFadeDuration + 0.02, heroLetterReferenceDuration), scrub: true } });
+    heroFadeTimeline.to({}, { duration: 0.02 }, 0).to(hero.querySelector(".hero-field-content"), { opacity: 0, duration: heroFadeDuration, ease: "none" }, 0.02);
 
     gsap.utils.toArray<HTMLElement>(".project-media").forEach((media) => gsap.fromTo(media, { scale: 0.88, clipPath: "inset(9% 6% 9% 6%)" }, { scale: 1, clipPath: "inset(0% 0% 0% 0%)", ease: "none", scrollTrigger: { trigger: media, start: "top 92%", end: "center 42%", scrub: true } }));
 
@@ -194,12 +211,6 @@ function SoundScapePage() {
   }, { scope: rootRef, dependencies: [reducedMotion], revertOnUpdate: true });
 
   const toggleSelected = (id: string) => setSelected((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
-  const openService = (category: (typeof categories)[number]) => {
-    setActiveCategory(category);
-    setQuery("");
-    setPage(1);
-    document.getElementById("archive")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <main ref={rootRef} className="soundscape-shell">
@@ -219,7 +230,7 @@ function SoundScapePage() {
 
       <section className="archive-section" id="archive"><div className="section-shell"><div className="archive-intro"><div><p className="section-label">{copy.archiveLabel}</p><h2>{copy.archiveTitle}<br /><span>{copy.archiveTitleAccent}</span></h2></div><p className="archive-intro-copy">{copy.archiveIntro.replace("piezas", `${audioCount} piezas`).replace("pieces", `${audioCount} pieces`)}</p></div><div className="archive-toolbar"><div className="category-row" role="tablist" aria-label="Filtrar por categoría">{categories.map((category) => <button key={category} role="tab" aria-selected={activeCategory === category} type="button" className={activeCategory === category ? "is-active" : ""} onClick={() => { setActiveCategory(category); setPage(1); }}>{categoryFilterLabel(category, language)}</button>)}</div><button className={`search-trigger${searchOpen ? " is-active" : ""}`} type="button" onClick={() => setSearchOpen((open) => !open)} aria-expanded={searchOpen} aria-controls="archive-search"><Search size={15} /><span>{copy.search}</span></button></div><AnimatePresence initial={false}>{searchOpen && <motion.label id="archive-search" className="archive-search" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}><Search size={15} /><span className="sr-only">{copy.search}</span><input autoFocus value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder={copy.searchPlaceholder} /></motion.label>}</AnimatePresence><div className="archive-list">{paginatedProducts.map((product, index) => <ProductRow key={product.id} product={product} index={index} language={language} selected={selected.includes(product.id)} onToggle={() => toggleSelected(product.id)} />)}</div>{visibleProducts.length === 0 && <div className="archive-empty">{copy.noResults}</div>}{visibleProducts.length > pageSize && <nav className="archive-pagination" aria-label={language === "es" ? "Paginación del archivo" : "Archive pagination"}><button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1} aria-label={copy.previousPage}><ChevronLeft size={16} /></button><span className="archive-pagination-status">{copy.page} {currentPage} {copy.of} {pageCount}</span><button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={currentPage === pageCount} aria-label={copy.nextPage}><ChevronRight size={16} /></button></nav>}<div className="archive-footer"><span>{visibleProducts.length} {copy.results}</span><a href="#contact">{copy.specificSound} <ArrowUpRight size={14} /></a></div></div></section>
 
-      <section className="practice-section" id="services"><div className="section-shell"><div className="practice-heading"><p className="section-label">{copy.practiceLabel}</p><h2>{copy.practiceTitle}<br />{copy.practiceTitleAccent}</h2><p>{copy.practiceCopy}</p></div><div className="service-list">{[[copy.services.soundDesign, "SFX"], [copy.services.music, "Música audiovisual"], [copy.services.pictureAudio, "Todos"]].map(([service, category], index) => <button className="service-row" type="button" key={service[0]} onClick={() => openService(category as (typeof categories)[number])}><span>0{index + 1}</span><h3>{service[0]}</h3><p>{service[1]}</p><ArrowUpRight size={18} /></button>)}</div></div></section>
+      <section className="practice-section" id="services"><div className="section-shell"><div className="practice-heading"><p className="section-label">{copy.practiceLabel}</p><h2>{copy.practiceTitle}<br />{copy.practiceTitleAccent}</h2><p>{copy.practiceCopy}</p></div><div className="service-list">{[copy.services.soundDesign, copy.services.music, copy.services.editingMix, copy.services.pictureAudio, copy.services.licensing].map((service) => <div className="service-row" key={service[0]}><h3>{service[0]}</h3><p>{service[1]}</p></div>)}</div></div></section>
 
       <section className="projects-section" id="projects"><div className="section-shell"><div className="projects-intro"><div><p className="section-label">{copy.projectsLabel}</p><h2>{copy.projectsTitle}<br /><span>{copy.projectsTitleAccent}</span></h2></div><p>{copy.projectsCopy}</p></div><div className="projects-stack">{projects.map((project, index) => <ProjectScene key={project.title} project={project} index={index} language={language} />)}</div></div></section>
 

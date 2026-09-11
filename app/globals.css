@@ -168,7 +168,7 @@ section[id] { scroll-margin-top: 88px; }
   z-index: -3;
   object-fit: cover;
   object-position: 50% 50%;
-  filter: saturate(0.64) contrast(1.08) brightness(0.52);
+  filter: saturate(0.64) contrast(1.08) brightness(0.70);
   transform: scale(1.02);
 }
 
@@ -340,13 +340,10 @@ section[id] { scroll-margin-top: 88px; }
 .practice-heading h2 { margin: 24px 0 0; font-size: clamp(48px, 7vw, 106px); font-weight: 400; letter-spacing: -0.07em; line-height: 0.87; }
 .practice-heading > p:last-child { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.45; }
 .service-list { margin-top: 13vh; border-top: 1px solid var(--line); }
-.service-row { display: grid; width: 100%; grid-template-columns: 42px minmax(240px, 1fr) minmax(220px, 0.75fr) 24px; align-items: center; gap: 24px; padding: 28px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; text-align: left; transition: padding 240ms ease, color 180ms ease, border-color 240ms ease; }
-.service-row > span { color: var(--faint); font-family: var(--mono); font-size: 10px; }
+.service-row { display: grid; width: 100%; grid-template-columns: minmax(240px, 1fr) minmax(220px, 0.75fr); align-items: center; gap: 24px; padding: 28px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; text-align: left; transition: padding 240ms ease, color 180ms ease, border-color 240ms ease; }
 .service-row h3 { margin: 0; font-size: clamp(28px, 3.7vw, 58px); font-weight: 400; letter-spacing: -0.055em; }
 .service-row p { max-width: 260px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
-.service-row > svg { color: var(--faint); transition: color 180ms ease, transform 180ms ease; }
 .service-row:hover { padding-right: 12px; padding-left: 12px; color: var(--mint); }
-.service-row:hover > svg { color: var(--mint); transform: translate(2px, -2px); }
 
 .projects-section { padding: 16vh 0 18vh; background: var(--bg); }
 .projects-stack { margin-top: 15vh; }
@@ -519,9 +516,9 @@ section[id] { scroll-margin-top: 88px; }
   .practice-heading h2 { margin-top: 20px; font-size: clamp(45px, 13vw, 76px); }
   .practice-heading > p:last-child { margin-top: 28px; }
   .service-list { margin-top: 9vh; }
-  .service-row { grid-template-columns: 28px 1fr 18px; gap: 12px; padding: 23px 0; }
+  .service-row { grid-template-columns: 1fr; gap: 12px; padding: 23px 0; }
   .service-row h3 { font-size: 31px; }
-  .service-row p { grid-column: 2 / 4; max-width: 260px; font-size: 13px; }
+  .service-row p { grid-column: 1; max-width: 260px; font-size: 13px; }
   .projects-stack { margin-top: 8vh; }
   .project-scene,
   .project-scene:nth-child(2) { padding: 9vh 0; }
