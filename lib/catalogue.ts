@@ -215,20 +215,27 @@ export const products: Product[] = Object.keys(waveformByPath).map((path, index)
 export const projects = [
   {
     number: "01",
-    title: "Ritual",
-    type: "Diseño sonoro / corto",
-    video: "/media/portfolio/ritual.mp4",
-    poster: "/media/portfolio/posters/ritual.webp",
-  },
-  {
-    number: "02",
     title: "OK Google",
     type: "Foley / audiovisual",
     video: "/media/portfolio/ok-google.mp4",
     poster: "/media/portfolio/posters/ok-google.webp",
   },
   {
+    number: "02",
+    title: "El Banco",
+    type: "Diseño sonoro / audiovisual",
+    video: "/media/portfolio/el-banco-final.mp4",
+    poster: "/media/portfolio/posters/el-banco-final.webp",
+  },
+  {
     number: "03",
+    title: "Ritual",
+    type: "Diseño sonoro / corto",
+    video: "/media/portfolio/ritual.mp4",
+    poster: "/media/portfolio/posters/ritual.webp",
+  },
+  {
+    number: "04",
     title: "SFX LOL",
     type: "Creación de efectos",
     video: "/media/portfolio/sfx-lol.mp4",
