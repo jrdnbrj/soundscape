@@ -7,7 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowDown, ArrowUpRight, Check, ChevronLeft, ChevronRight, Menu, Pause, Play, Search, Volume2, VolumeX, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { GlobalPlayer } from "./audio/global-player";
 import { AudioProvider, useAudio } from "./audio/audio-context";
 import { Waveform } from "./audio/waveform";
@@ -15,6 +15,8 @@ import { audioCount, categories, formatPrice, products, projects, waveformFor, t
 import { categoryFilterLabel, localizedProduct, localizedProjectType, translations, type Language } from "../lib/i18n";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const SessionPanel = lazy(() => import("./soundscape-session-panel").then((module) => ({ default: module.SessionPanel })));
 
 function ProductRow({ product, selected, onToggle, index, language }: { product: Product; selected: boolean; onToggle: () => void; index: number; language: Language }) {
   const { currentTrack, currentTime, duration, isPlaying, playTrack, seek } = useAudio();
@@ -55,9 +57,35 @@ function ProductRow({ product, selected, onToggle, index, language }: { product:
 }
 
 function ProjectScene({ project, index, language }: { project: (typeof projects)[number]; index: number; language: Language }) {
+  const mediaRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [mediaReady, setMediaReady] = useState(false);
+  const [playRequested, setPlayRequested] = useState(false);
   const copy = translations[language];
+
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media || typeof IntersectionObserver === "undefined") {
+      setMediaReady(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setMediaReady(true);
+      observer.disconnect();
+    }, { rootMargin: "500px 0px" });
+    observer.observe(media);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!mediaReady || !playRequested || !videoRef.current) return;
+    const video = videoRef.current;
+    window.dispatchEvent(new CustomEvent("soundscape:video-play", { detail: project.title }));
+    void video.play().catch(() => undefined);
+    setPlayRequested(false);
+  }, [mediaReady, playRequested, project.title]);
 
   useEffect(() => {
     const pauseOtherVideo = (event: Event) => {
@@ -70,6 +98,11 @@ function ProjectScene({ project, index, language }: { project: (typeof projects)
 
   const toggleVideo = async () => {
     if (!videoRef.current) return;
+    if (!mediaReady) {
+      setMediaReady(true);
+      setPlayRequested(true);
+      return;
+    }
     if (videoRef.current.paused) {
       window.dispatchEvent(new CustomEvent("soundscape:video-play", { detail: project.title }));
       await videoRef.current.play();
@@ -81,42 +114,13 @@ function ProjectScene({ project, index, language }: { project: (typeof projects)
   return (
     <article className={`project-scene project-scene-${index + 1}`}>
       <div className="project-scene-copy"><span className="project-number">{project.number}</span><div><h3>{project.title}</h3><p>{localizedProjectType(project.type, language)}</p></div><ArrowUpRight size={18} aria-hidden="true" /></div>
-      <div className="project-media">
-        <video ref={videoRef} controls={playing} preload="none" playsInline poster={project.poster} src={project.video} onPlay={() => { window.dispatchEvent(new CustomEvent("soundscape:video-play", { detail: project.title })); setPlaying(true); }} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
+      <div ref={mediaRef} className="project-media">
+        <video ref={videoRef} controls={playing} preload="none" playsInline poster={mediaReady ? project.poster : undefined} src={mediaReady ? project.video : undefined} onPlay={() => { window.dispatchEvent(new CustomEvent("soundscape:video-play", { detail: project.title })); setPlaying(true); }} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
         <div className="project-media-shade" />
         <button className="project-play" type="button" onClick={() => void toggleVideo()} aria-label={`${playing ? copy.pause : copy.watchProject} ${project.title}`}>{playing ? <Pause size={21} fill="currentColor" /> : <Play size={21} fill="currentColor" />}</button>
         <span className="project-play-label">{playing ? copy.pause : copy.watchProject}</span>
       </div>
     </article>
-  );
-}
-
-function SessionPanel({ selected, onClose, onRemove, language }: { selected: string[]; onClose: () => void; onRemove: (id: string) => void; language: Language }) {
-  const { playTrack } = useAudio();
-  const copy = translations[language];
-  const selectedProducts = selected.map((id) => products.find((item) => item.id === id)).filter((product): product is Product => Boolean(product));
-  const message = `${copy.selectionMessage}${selectedProducts.map((product) => `• ${localizedProduct(product, language).title}`).join("\n")}\n\n${copy.messageClose}`;
-  const whatsappHref = `https://wa.me/346327333266?text=${encodeURIComponent(message)}`;
-
-  return (
-    <AnimatePresence>
-      <motion.div className="session-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-        <motion.aside className="session-panel" role="dialog" aria-modal="true" aria-labelledby="session-title" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", stiffness: 260, damping: 30 }} onClick={(event) => event.stopPropagation()}>
-          <div className="session-header"><div><p className="section-label">{copy.sessionLabel} · {selected.length}</p><h2 id="session-title">{copy.sessionTitle}<br /><em>{copy.sessionTitleAccent}</em></h2></div><button className="icon-button" type="button" onClick={onClose} aria-label={copy.selection}><X size={19} /></button></div>
-          {selected.length === 0 ? <div className="session-empty"><p>{copy.sessionEmpty}</p><button className="line-button" type="button" onClick={onClose}>{copy.backToArchive} <ArrowUpRight size={15} /></button></div> : (
-            <div className="session-track-list">
-              {selected.map((id) => {
-                const product = products.find((item) => item.id === id);
-                if (!product) return null;
-                const display = localizedProduct(product, language);
-                return <div className="session-track" key={id}><button className="session-track-play" type="button" onClick={() => void playTrack(product)} aria-label={`${copy.play} ${display.title}`}><Play size={13} fill="currentColor" /></button><div className="session-track-main"><strong>{display.title}</strong><span>{display.categoryLabel} · {product.duration}</span></div><button className="session-track-remove" type="button" onClick={() => onRemove(id)} aria-label={`${copy.remove} ${display.title}`}><X size={14} /></button></div>;
-              })}
-              <a className="session-cta" href={whatsappHref} target="_blank" rel="noreferrer" onClick={onClose}>{copy.askWhatsApp} <ArrowUpRight size={16} /></a>
-            </div>
-          )}
-        </motion.aside>
-      </motion.div>
-    </AnimatePresence>
   );
 }
 
@@ -221,7 +225,7 @@ function SoundScapePage() {
       </header>
 
       <section ref={heroRef} className="hero-field" id="top">
-        <Image className="hero-field-image" src="/media/brand/landscape.jpg" alt="Logo oficial de SoundScape sobre un paisaje" fill priority sizes="100vw" />
+        <Image className="hero-field-image" src="/media/brand/landscape.webp" alt="Logo oficial de SoundScape sobre un paisaje" fill priority fetchPriority="high" sizes="100vw" />
         <div className="hero-field-shade" />
         <div className="hero-field-content"><p className="hero-overline">{copy.heroOverline}</p><h1>{copy.heroTitle}<br /><em>{copy.heroTitleAccent}</em></h1><p className="hero-lede">{copy.heroLede}</p><button className="hero-listen" type="button" onClick={() => void playTrack(fieldNote)}>{currentTrack?.id === fieldNote.id && isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}<span>{currentTrack?.id === fieldNote.id && isPlaying ? copy.pause : copy.listenSample}</span></button></div>
         <div className="hero-footer"><span>SoundScape</span><span>{copy.fieldRecording} · 02:55</span><a href="#archive">{copy.discoverArchive} <ArrowDown size={14} /></a></div>
@@ -234,7 +238,7 @@ function SoundScapePage() {
 
       <section className="projects-section" id="projects"><div className="section-shell"><div className="projects-intro"><div><p className="section-label">{copy.projectsLabel}</p><h2>{copy.projectsTitle}<br /><span>{copy.projectsTitleAccent}</span></h2></div><p>{copy.projectsCopy}</p></div><div className="projects-stack">{projects.map((project, index) => <ProjectScene key={project.title} project={project} index={index} language={language} />)}</div></div></section>
 
-      <section className="journal-section" id="journal"><div className="section-shell journal-grid"><div className="journal-visual"><div className="journal-visual-main"><Image src="/media/portfolio/posters/ok-google.jpg" alt="Imagen de proyecto audiovisual de SoundScape" fill sizes="(max-width: 760px) 86vw, 36vw" /></div><div className="journal-visual-logo"><Image src="/media/brand/icon-texture.png" alt="Logo oficial de SoundScape" fill sizes="26vw" /></div><div className="journal-visual-line" aria-hidden="true" /><div className="journal-visual-caption"><span>{copy.journalVisualCaption}</span><span>SoundScape</span></div><div className="journal-visual-wave" aria-hidden="true"><Waveform peaks={waveformFor(fieldNote.preview).peaks} tone="mint" /></div></div><div className="journal-copy"><p className="section-label">{copy.aboutLabel}</p><h2>{copy.aboutTitle}<br /><span>{copy.aboutTitleAccent}</span></h2><p>{copy.aboutCopy}</p><a className="line-button" href="#contact">{copy.talkProject} <ArrowUpRight size={15} /></a></div></div></section>
+      <section className="journal-section" id="journal"><div className="section-shell journal-grid"><div className="journal-visual"><div className="journal-visual-main"><Image src="/media/portfolio/posters/ok-google.webp" alt="Imagen de proyecto audiovisual de SoundScape" fill sizes="(max-width: 760px) 86vw, 36vw" /></div><div className="journal-visual-logo"><Image src="/media/brand/icon-texture.webp" alt="Logo oficial de SoundScape" fill sizes="26vw" /></div><div className="journal-visual-line" aria-hidden="true" /><div className="journal-visual-caption"><span>{copy.journalVisualCaption}</span><span>SoundScape</span></div><div className="journal-visual-wave" aria-hidden="true"><Waveform peaks={waveformFor(fieldNote.preview).peaks} tone="mint" /></div></div><div className="journal-copy"><p className="section-label">{copy.aboutLabel}</p><h2>{copy.aboutTitle}<br /><span>{copy.aboutTitleAccent}</span></h2><p>{copy.aboutCopy}</p><a className="line-button" href="#contact">{copy.talkProject} <ArrowUpRight size={15} /></a></div></div></section>
 
       <section className="contact-section" id="contact"><div className="section-shell contact-grid"><div><p className="section-label">{copy.contactLabel}</p><h2>{copy.contactTitle}<br /><span>{copy.contactTitleAccent}</span></h2></div><div className="contact-copy"><p>{copy.contactCopy}</p><a className="contact-email" href={`https://wa.me/346327333266?text=${encodeURIComponent(copy.generalMessage)}`} target="_blank" rel="noreferrer">{copy.whatsapp} <ArrowUpRight size={18} /></a><p className="contact-meta">{copy.contactMeta}</p></div></div><div className="contact-strip"><span>SoundScape</span><span>{copy.contactArtist ?? "Dario Silva"}</span><span>{copy.whatsapp}</span></div></section>
 
@@ -242,7 +246,7 @@ function SoundScapePage() {
 
       <AnimatePresence>{currentTrack && <motion.div className="player-space" initial={{ height: 0 }} animate={{ height: playerMinimized ? 58 : 112 }} exit={{ height: 0 }} />}</AnimatePresence>
       <GlobalPlayer sessionCount={selected.length} isCurrentTrackSelected={Boolean(currentTrack && selected.includes(currentTrack.id))} onAdd={() => currentTrack && toggleSelected(currentTrack.id)} onOpenSession={() => setSessionOpen(true)} minimized={playerMinimized} onMinimize={() => setPlayerMinimized((value) => !value)} language={language} />
-      {sessionOpen && <SessionPanel selected={selected} language={language} onClose={() => setSessionOpen(false)} onRemove={(id) => setSelected((items) => items.filter((item) => item !== id))} />}
+      {sessionOpen && <Suspense fallback={null}><SessionPanel selected={selected} language={language} onClose={() => setSessionOpen(false)} onRemove={(id) => setSelected((items) => items.filter((item) => item !== id))} /></Suspense>}
     </main>
   );
 }

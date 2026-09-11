@@ -32,7 +32,7 @@ const curatedProducts: Product[] = [
     description: "Una textura subterránea, húmeda y cercana para construir espacio.",
     duration: "1:04",
     price: 6.9,
-    preview: "/media/audio/AMB-001__ALCANTARILLA.mp3",
+    preview: "/media/previews/AMB-001__ALCANTARILLA.mp3",
     tags: ["campo", "agua"],
     axis: { x: 24, y: 28 },
     accent: "water",
@@ -45,7 +45,7 @@ const curatedProducts: Product[] = [
     description: "Lluvia continua y abierta para capas, transiciones y escenas suspendidas.",
     duration: "1:53",
     price: 6.9,
-    preview: "/media/audio/AMB-005__AMBIENTE_LLUVIA.mp3",
+    preview: "/media/previews/AMB-005__AMBIENTE_LLUVIA.mp3",
     tags: ["lluvia", "atmósfera"],
     axis: { x: 38, y: 22 },
     accent: "air",
@@ -58,7 +58,7 @@ const curatedProducts: Product[] = [
     description: "Grabación de campo de larga duración con perspectiva amplia y orgánica.",
     duration: "2:55",
     price: 9.9,
-    preview: "/media/audio/AMB-013__MURCIA_RIO_SEGURA.mp3",
+    preview: "/media/previews/AMB-013__MURCIA_RIO_SEGURA.mp3",
     tags: ["Murcia", "río", "3ch"],
     axis: { x: 18, y: 48 },
     accent: "water",
@@ -71,7 +71,7 @@ const curatedProducts: Product[] = [
     description: "Un gesto de tensión breve para marcar un corte, una entrada o una revelación.",
     duration: "2:20",
     price: 14.9,
-    preview: "/media/audio/MAV-005__MUSICA_FX_IMPACTO.mp3",
+    preview: "/media/previews/MAV-005__MUSICA_FX_IMPACTO.mp3",
     tags: ["impacto", "cine"],
     axis: { x: 74, y: 67 },
     accent: "cinema",
@@ -84,7 +84,7 @@ const curatedProducts: Product[] = [
     description: "La versión principal seleccionada para presentar el universo contemporáneo de SoundScape.",
     duration: "4:52",
     price: 24.9,
-    preview: "/media/audio/MUS-004__LUXURY_MMIX_1.mp3",
+    preview: "/media/previews/MUS-004__LUXURY_MMIX_1.mp3",
     tags: ["contemporánea", "master"],
     axis: { x: 62, y: 38 },
     accent: "cinema",
@@ -97,7 +97,7 @@ const curatedProducts: Product[] = [
     description: "Una pieza oscura y ceremonial para imagen, instalación y narrativas de alta tensión.",
     duration: "4:18",
     price: 19.9,
-    preview: "/media/audio/MUS-009__SATANIC_CHURCH.mp3",
+    preview: "/media/previews/MUS-009__SATANIC_CHURCH.mp3",
     tags: ["oscuro", "ceremonial"],
     axis: { x: 78, y: 35 },
     accent: "dark",
@@ -110,7 +110,7 @@ const curatedProducts: Product[] = [
     description: "Detalle de agua cercano para diseño sonoro, edición y capas de foley.",
     duration: "4:12",
     price: 2.9,
-    preview: "/media/audio/SFX-001__AGUA_CORRIENDO_BAJO_SUELO_CORTO_PALACIO_2.mp3",
+    preview: "/media/previews/SFX-001__AGUA_CORRIENDO_BAJO_SUELO_CORTO_PALACIO_2.mp3",
     tags: ["agua", "detalle"],
     axis: { x: 31, y: 69 },
     accent: "water",
@@ -123,7 +123,7 @@ const curatedProducts: Product[] = [
     description: "Metal y fricción para tensión física, ficción sonora y montaje cinematográfico.",
     duration: "2:46",
     price: 2.9,
-    preview: "/media/audio/SFX-030__KS_Knife_Sharpen_1.mp3",
+    preview: "/media/previews/SFX-030__KS_Knife_Sharpen_1.mp3",
     tags: ["metal", "tensión"],
     axis: { x: 83, y: 73 },
     accent: "metal",
@@ -136,7 +136,7 @@ const curatedProducts: Product[] = [
     description: "Una vocalización áspera para criaturas, monstruos y mundos imposibles.",
     duration: "2:59",
     price: 2.9,
-    preview: "/media/audio/SFX-047__KS_Beast_1.mp3",
+    preview: "/media/previews/SFX-047__KS_Beast_1.mp3",
     tags: ["criatura", "voz"],
     axis: { x: 66, y: 86 },
     accent: "organic",
@@ -197,7 +197,7 @@ function generatedProduct(path: string, index: number): Product {
     description: `Pieza propia de ${meta.label.toLowerCase()} para escucha, montaje y diseño sonoro.`,
     duration: formatDuration(waveform?.duration ?? 0),
     price: meta.price,
-    preview: path,
+    preview: path.replace("/media/audio/", "/media/previews/"),
     tags,
     axis: { x: 12 + ((index * 37) % 76), y: 18 + ((index * 53) % 70) },
     accent: meta.accent,
@@ -218,28 +218,29 @@ export const projects = [
     title: "Ritual",
     type: "Diseño sonoro / corto",
     video: "/media/portfolio/ritual.mp4",
-    poster: "/media/portfolio/posters/ritual.jpg",
+    poster: "/media/portfolio/posters/ritual.webp",
   },
   {
     number: "02",
     title: "OK Google",
     type: "Foley / audiovisual",
     video: "/media/portfolio/ok-google.mp4",
-    poster: "/media/portfolio/posters/ok-google.jpg",
+    poster: "/media/portfolio/posters/ok-google.webp",
   },
   {
     number: "03",
     title: "SFX LOL",
     type: "Creación de efectos",
     video: "/media/portfolio/sfx-lol.mp4",
-    poster: "/media/portfolio/posters/sfx-lol.jpg",
+    poster: "/media/portfolio/posters/sfx-lol.webp",
   },
 ];
 
 export const audioCount = products.length;
 
 export function waveformFor(path: string) {
-  return waveformByPath[path] ?? { duration: 0, peaks: Array.from({ length: 72 }, (_, index) => 0.1 + ((index * 19) % 38) / 100) };
+  const sourcePath = path.replace("/media/previews/", "/media/audio/");
+  return waveformByPath[path] ?? waveformByPath[sourcePath] ?? { duration: 0, peaks: Array.from({ length: 72 }, (_, index) => 0.1 + ((index * 19) % 38) / 100) };
 }
 
 export function formatPrice(price: number) {
