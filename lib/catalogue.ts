@@ -2,6 +2,20 @@ import waveformData from "../public/media/waveforms.json";
 
 const publicMediaBaseUrl = "https://pub-4fce4eeaecdd440a8fabdc162b2b2b0b.r2.dev";
 
+function originalAudioUrl(path: string) {
+  const fileName = path.split("/").pop() ?? path;
+  const stem = fileName.replace(/\.[^.]+$/, "");
+  return `${publicMediaBaseUrl}/audio/${encodeURIComponent(stem)}.wav`;
+}
+
+function waveformPathForAudioUrl(path: string) {
+  const audioPrefix = `${publicMediaBaseUrl}/audio/`;
+  if (!path.startsWith(audioPrefix)) return path;
+
+  const fileName = decodeURIComponent(path.slice(audioPrefix.length)).replace(/\.wav$/, ".mp3");
+  return `/media/audio/${fileName}`;
+}
+
 export type Category = "Ambientes" | "Música audiovisual" | "Música contemporánea" | "SFX";
 
 export type Product = {
@@ -34,7 +48,7 @@ const curatedProducts: Product[] = [
     description: "Una textura subterránea, húmeda y cercana para construir espacio.",
     duration: "1:04",
     price: 6.9,
-    preview: "/media/audio/AMB-001__ALCANTARILLA.mp3",
+    preview: originalAudioUrl("/media/audio/AMB-001__ALCANTARILLA.mp3"),
     tags: ["campo", "agua"],
     axis: { x: 24, y: 28 },
     accent: "water",
@@ -47,7 +61,7 @@ const curatedProducts: Product[] = [
     description: "Lluvia continua y abierta para capas, transiciones y escenas suspendidas.",
     duration: "1:53",
     price: 6.9,
-    preview: "/media/audio/AMB-005__AMBIENTE_LLUVIA.mp3",
+    preview: originalAudioUrl("/media/audio/AMB-005__AMBIENTE_LLUVIA.mp3"),
     tags: ["lluvia", "atmósfera"],
     axis: { x: 38, y: 22 },
     accent: "air",
@@ -60,7 +74,7 @@ const curatedProducts: Product[] = [
     description: "Grabación de campo de larga duración con perspectiva amplia y orgánica.",
     duration: "2:55",
     price: 9.9,
-    preview: "/media/audio/AMB-013__MURCIA_RIO_SEGURA.mp3",
+    preview: originalAudioUrl("/media/audio/AMB-013__MURCIA_RIO_SEGURA.mp3"),
     tags: ["Murcia", "río", "3ch"],
     axis: { x: 18, y: 48 },
     accent: "water",
@@ -73,7 +87,7 @@ const curatedProducts: Product[] = [
     description: "Un gesto de tensión breve para marcar un corte, una entrada o una revelación.",
     duration: "2:20",
     price: 14.9,
-    preview: "/media/audio/MAV-005__MUSICA_FX_IMPACTO.mp3",
+    preview: originalAudioUrl("/media/audio/MAV-005__MUSICA_FX_IMPACTO.mp3"),
     tags: ["impacto", "cine"],
     axis: { x: 74, y: 67 },
     accent: "cinema",
@@ -86,7 +100,7 @@ const curatedProducts: Product[] = [
     description: "La versión principal seleccionada para presentar el universo contemporáneo de SoundScape.",
     duration: "4:52",
     price: 24.9,
-    preview: "/media/audio/MUS-004__LUXURY_MMIX_1.mp3",
+    preview: originalAudioUrl("/media/audio/MUS-004__LUXURY_MMIX_1.mp3"),
     tags: ["contemporánea", "master"],
     axis: { x: 62, y: 38 },
     accent: "cinema",
@@ -99,7 +113,7 @@ const curatedProducts: Product[] = [
     description: "Una pieza oscura y ceremonial para imagen, instalación y narrativas de alta tensión.",
     duration: "4:18",
     price: 19.9,
-    preview: "/media/audio/MUS-009__SATANIC_CHURCH.mp3",
+    preview: originalAudioUrl("/media/audio/MUS-009__SATANIC_CHURCH.mp3"),
     tags: ["oscuro", "ceremonial"],
     axis: { x: 78, y: 35 },
     accent: "dark",
@@ -112,7 +126,7 @@ const curatedProducts: Product[] = [
     description: "Detalle de agua cercano para diseño sonoro, edición y capas de foley.",
     duration: "4:12",
     price: 2.9,
-    preview: "/media/audio/SFX-001__AGUA_CORRIENDO_BAJO_SUELO_CORTO_PALACIO_2.mp3",
+    preview: originalAudioUrl("/media/audio/SFX-001__AGUA_CORRIENDO_BAJO_SUELO_CORTO_PALACIO_2.mp3"),
     tags: ["agua", "detalle"],
     axis: { x: 31, y: 69 },
     accent: "water",
@@ -125,7 +139,7 @@ const curatedProducts: Product[] = [
     description: "Metal y fricción para tensión física, ficción sonora y montaje cinematográfico.",
     duration: "2:46",
     price: 2.9,
-    preview: "/media/audio/SFX-030__KS_Knife_Sharpen_1.mp3",
+    preview: originalAudioUrl("/media/audio/SFX-030__KS_Knife_Sharpen_1.mp3"),
     tags: ["metal", "tensión"],
     axis: { x: 83, y: 73 },
     accent: "metal",
@@ -138,7 +152,7 @@ const curatedProducts: Product[] = [
     description: "Una vocalización áspera para criaturas, monstruos y mundos imposibles.",
     duration: "2:59",
     price: 2.9,
-    preview: "/media/audio/SFX-047__KS_Beast_1.mp3",
+    preview: originalAudioUrl("/media/audio/SFX-047__KS_Beast_1.mp3"),
     tags: ["criatura", "voz"],
     axis: { x: 66, y: 86 },
     accent: "organic",
@@ -199,7 +213,7 @@ function generatedProduct(path: string, index: number): Product {
     description: `Pieza propia de ${meta.label.toLowerCase()} para escucha, montaje y diseño sonoro.`,
     duration: formatDuration(waveform?.duration ?? 0),
     price: meta.price,
-    preview: path,
+    preview: originalAudioUrl(path),
     tags,
     axis: { x: 12 + ((index * 37) % 76), y: 18 + ((index * 53) % 70) },
     accent: meta.accent,
@@ -248,7 +262,7 @@ export const projects = [
 export const audioCount = products.length;
 
 export function waveformFor(path: string) {
-  const sourcePath = path;
+  const sourcePath = waveformPathForAudioUrl(path);
   return waveformByPath[path] ?? waveformByPath[sourcePath] ?? { duration: 0, peaks: Array.from({ length: 72 }, (_, index) => 0.1 + ((index * 19) % 38) / 100) };
 }
 
