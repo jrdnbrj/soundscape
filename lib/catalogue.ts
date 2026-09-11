@@ -1,5 +1,7 @@
 import waveformData from "../public/media/waveforms.json";
 
+const publicMediaBaseUrl = "https://pub-4fce4eeaecdd440a8fabdc162b2b2b0b.r2.dev";
+
 export type Category = "Ambientes" | "Música audiovisual" | "Música contemporánea" | "SFX";
 
 export type Product = {
@@ -224,7 +226,7 @@ export const projects = [
     number: "02",
     title: "El Banco",
     type: "Diseño sonoro / audiovisual",
-    video: "/media/portfolio/el-banco-final.mp4",
+    video: `${publicMediaBaseUrl}/el-banco-final.mp4`,
     poster: "/media/portfolio/posters/el-banco-final.webp",
   },
   {
