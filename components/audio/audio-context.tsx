@@ -56,6 +56,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolumeState] = useState(0.78);
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
+  const canUseAudioGraph = (track: Product | null) => {
+    if (!track || typeof window === "undefined") return false;
+    try {
+      return new URL(track.preview, window.location.href).origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
     const storedSound = window.localStorage.getItem("soundscape-sound");
     if (storedSound !== null) {
@@ -133,7 +142,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
 
     setLoading(true);
-    const audioContext = ensureAudioGraph();
+    const audioContext = canUseAudioGraph(track) ? ensureAudioGraph() : null;
     if (!sameTrack) {
       pendingSeekRef.current = startTime;
       audio.src = track.preview;
@@ -161,7 +170,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     if (!audio || !currentTrack) return;
 
     if (audio.paused) {
-      const audioContext = ensureAudioGraph();
+      const audioContext = canUseAudioGraph(currentTrack) ? ensureAudioGraph() : null;
       if (audioContext?.state === "suspended") await audioContext.resume();
       await audio.play();
     } else {
