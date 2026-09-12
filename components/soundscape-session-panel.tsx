@@ -5,6 +5,7 @@ import { ArrowUpRight, Play, X } from "lucide-react";
 import { useAudio } from "./audio/audio-context";
 import { localizedProduct, translations, type Language } from "../lib/i18n";
 import { products, type Product } from "../lib/catalogue";
+import { WHATSAPP_PHONE } from "../lib/contact";
 
 type SessionPanelProps = {
   selected: string[];
@@ -18,7 +19,7 @@ export function SessionPanel({ selected, onClose, onRemove, language }: SessionP
   const copy = translations[language];
   const selectedProducts = selected.map((id) => products.find((item) => item.id === id)).filter((product): product is Product => Boolean(product));
   const message = `${copy.selectionMessage}${selectedProducts.map((product) => `• ${localizedProduct(product, language).title}`).join("\n")}\n\n${copy.messageClose}`;
-  const whatsappHref = `https://wa.me/346327333266?text=${encodeURIComponent(message)}`;
+  const whatsappHref = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
 
   return (
     <AnimatePresence>

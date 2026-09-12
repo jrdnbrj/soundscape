@@ -12,6 +12,7 @@ import { GlobalPlayer } from "./audio/global-player";
 import { AudioProvider, useAudio } from "./audio/audio-context";
 import { Waveform } from "./audio/waveform";
 import { audioCount, categories, formatPrice, products, projects, waveformFor, type Product } from "../lib/catalogue";
+import { contactLinks, CONTACT_EMAIL, WHATSAPP_PHONE } from "../lib/contact";
 import { categoryFilterLabel, localizedProduct, localizedProjectType, translations, type Language } from "../lib/i18n";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -277,7 +278,7 @@ function SoundScapePage() {
 
     ScrollTrigger.create({ start: 72, end: "max", onUpdate: (self) => { gsap.to(header, { yPercent: self.direction === 1 && self.scroll() > 160 ? -120 : 0, duration: 0.42, ease: "power2.out", overwrite: true }); } });
 
-    gsap.utils.toArray<HTMLElement>(".practice-section .section-label, .practice-heading h2, .projects-section .section-label, .projects-intro h2, .journal-section .section-label, .journal-copy h2").forEach((element) => {
+    gsap.utils.toArray<HTMLElement>(".practice-section .section-label, .practice-heading h2, .projects-section .section-label, .projects-intro h2, .journal-section .section-label, .journal-copy h2, .contact-copy .contact-profile, .contact-copy .contact-actions, .contact-networks").forEach((element) => {
       gsap.fromTo(element, { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", immediateRender: false, scrollTrigger: { trigger: element, start: "top 88%", toggleActions: "play none play none", onRefresh: (self) => { if (self.progress > 0) gsap.set(element, { y: 0, opacity: 1 }); } } });
     });
     gsap.utils.toArray<HTMLElement>(".service-row, .project-scene-copy").forEach((element) => {
@@ -297,12 +298,17 @@ function SoundScapePage() {
     const target = document.getElementById(id);
     if (!target) return;
     window.history.pushState({}, "", `#${id}`);
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(target, { offset: -88, duration: 1.05, onComplete: refreshScrollScene });
-      return;
-    }
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(refreshScrollScene, 450);
+    const alignSection = (behavior: ScrollBehavior) => {
+      const targetTop = Math.max(0, target.offsetTop - 88);
+      window.scrollTo({ top: targetTop, behavior });
+      return targetTop;
+    };
+    alignSection(reducedMotion ? "auto" : "smooth");
+    window.setTimeout(() => {
+      const targetTop = alignSection("auto");
+      if (Math.abs(target.getBoundingClientRect().top - 88) > 8) window.scrollTo({ top: targetTop, behavior: "auto" });
+      refreshScrollScene();
+    }, reducedMotion ? 0 : 1100);
   };
 
   useEffect(() => {
@@ -346,7 +352,7 @@ function SoundScapePage() {
 
       <section className="journal-section" id="journal"><div className="section-shell journal-grid"><div className="journal-visual"><div className="journal-visual-main"><Image src="/media/portfolio/posters/ok-google.jpg" alt="Imagen de proyecto audiovisual de SoundScape" fill sizes="(max-width: 760px) 86vw, 36vw" /></div><div className="journal-visual-logo"><Image src="/media/brand/icon-texture.png" alt="Logo oficial de SoundScape" fill sizes="26vw" /></div><div className="journal-visual-line" aria-hidden="true" /><div className="journal-visual-caption"><span>{copy.journalVisualCaption}</span><span>SoundScape</span></div><div className="journal-visual-wave" aria-hidden="true"><Waveform peaks={waveformFor(fieldNote.preview).peaks} tone="mint" /></div></div><div className="journal-copy"><p className="section-label">{copy.aboutLabel}</p><h2>{copy.aboutTitle}<br /><span>{copy.aboutTitleAccent}</span></h2><p>{copy.aboutCopy}</p><a className="line-button" href="#contact" onClick={(event) => scrollToSection(event, "contact")}>{copy.talkProject} <ArrowUpRight size={15} /></a></div></div></section>
 
-      <section className="contact-section" id="contact"><div className="section-shell contact-grid"><div><p className="section-label">{copy.contactLabel}</p><h2>{copy.contactTitle}<br /><span>{copy.contactTitleAccent}</span></h2></div><div className="contact-copy"><p>{copy.contactCopy}</p><a className="contact-email" href={`https://wa.me/346327333266?text=${encodeURIComponent(copy.generalMessage)}`} target="_blank" rel="noreferrer">{copy.whatsapp} <ArrowUpRight size={18} /></a><p className="contact-meta">{copy.contactMeta}</p></div></div><div className="contact-strip"><span>{copy.contactArtist ?? "Dario Silva"}</span></div></section>
+      <section className="contact-section" id="contact"><div className="section-shell contact-grid"><div><p className="section-label">{copy.contactLabel}</p><h2>{copy.contactTitle}<br /><span>{copy.contactTitleAccent}</span></h2></div><div className="contact-copy"><div className="contact-profile"><p className="contact-profile-label">{copy.contactProfileLabel}</p><p className="contact-bio">{copy.contactBio}</p></div><p className="contact-copy-lede">{copy.contactCopy}</p><div className="contact-actions"><a className="contact-email" href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(copy.generalMessage)}`} target="_blank" rel="noreferrer"><span>{copy.whatsapp}</span><ArrowUpRight size={18} /></a><a className="contact-secondary" href={`mailto:${CONTACT_EMAIL}`}><span>{copy.email}</span><span className="contact-address">{CONTACT_EMAIL}</span><ArrowUpRight size={16} /></a></div><p className="contact-meta">{copy.contactMeta}</p><div className="contact-networks"><p className="contact-networks-label">{copy.contactNetworksLabel}</p><div className="contact-network-grid"><div className="contact-network"><p>{copy.contactSoundscapeLabel}</p><a className="contact-link" href={contactLinks.soundscapeInstagram} target="_blank" rel="noreferrer"><span className="contact-link-mark">IG</span><span>Instagram</span><ArrowUpRight size={14} /></a><a className="contact-link" href={contactLinks.soundscapeTikTok} target="_blank" rel="noreferrer"><span className="contact-link-mark">TT</span><span>TikTok</span><ArrowUpRight size={14} /></a></div><div className="contact-network"><p>{copy.contactDarioLabel}</p><a className="contact-link" href={contactLinks.darioInstagram} target="_blank" rel="noreferrer"><span className="contact-link-mark">IG</span><span>Instagram</span><ArrowUpRight size={14} /></a><a className="contact-link" href={contactLinks.darioGumroad} target="_blank" rel="noreferrer"><span className="contact-link-mark">G</span><span>Gumroad</span><ArrowUpRight size={14} /></a></div></div></div></div></div><div className="contact-strip"><span>{copy.contactArtist ?? "Dario Silva"}</span></div></section>
 
       <footer className="site-footer"><a className="brand" href="#top" onClick={(event) => scrollToSection(event, "top")}><span>SOUNDSCAPE</span></a><span>{language === "es" ? "Diseño sonoro · música · campo" : "Sound design · music · field"}</span><span>© 2026</span></footer>
 
